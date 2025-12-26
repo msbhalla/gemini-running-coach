@@ -53,15 +53,56 @@ def save_settings(race_date, goal_time, race_name):
     with open(SETTINGS_FILE, "w") as f:
         json.dump(settings, f)
 
-# --- 📱 CSS STYLING ---
+# --- 📱 CSS STYLING (UPDATED FONT SIZES) ---
 st.markdown("""
 <style>
-    .trophy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 25px; }
-    .trophy-card { background-color: #ffffff; border: 1px solid #e2e8f0; border-left: 5px solid #f59e0b; border-radius: 8px; padding: 12px; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); }
-    .trophy-title { font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; }
-    .trophy-time { font-size: 1.4rem; font-weight: 700; color: #0f172a; font-family: monospace; margin: 4px 0; }
-    .trophy-date { font-size: 0.7rem; color: #94a3b8; }
-    .countdown-box { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; text-align: center; margin-bottom: 20px; }
+    /* Metric Value Font Reduction */
+    [data-testid="stMetricValue"] {
+        font-size: 1.8rem !important; /* Reduced from default ~3rem */
+    }
+    
+    /* Trophy Grid */
+    .trophy-grid { 
+        display: grid; 
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); /* Slightly narrower col min-width */
+        gap: 10px; 
+        margin-bottom: 25px; 
+    }
+    
+    /* Trophy Card */
+    .trophy-card { 
+        background-color: #ffffff; 
+        border: 1px solid #e2e8f0; 
+        border-left: 5px solid #f59e0b; 
+        border-radius: 8px; 
+        padding: 10px; 
+        box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); 
+    }
+    .trophy-title { 
+        font-size: 0.7rem; 
+        text-transform: uppercase; 
+        color: #64748b; 
+        font-weight: 700; 
+    }
+    .trophy-time { 
+        font-size: 1.1rem; /* Reduced from 1.4rem */
+        font-weight: 700; 
+        color: #0f172a; 
+        font-family: monospace; 
+        margin: 2px 0; 
+    }
+    .trophy-date { font-size: 0.65rem; color: #94a3b8; }
+    
+    /* Countdown Box */
+    .countdown-box { 
+        background-color: #f8fafc; 
+        border: 1px solid #e2e8f0; 
+        border-radius: 10px; 
+        padding: 12px; 
+        text-align: center; 
+        margin-bottom: 20px; 
+    }
+    .countdown-header { font-size: 1.8rem !important; } /* Reduced from 2.2rem */
     
     /* Coach Chat Buttons */
     .stButton button { width: 100%; border-radius: 8px; height: auto; white-space: normal; padding: 0.5rem; }
@@ -69,7 +110,7 @@ st.markdown("""
     @media (max-width: 768px) {
         [data-testid="column"] { width: 100% !important; flex: 1 1 auto !important; min-width: 100% !important; }
         .block-container { padding-left: 1rem !important; padding-right: 1rem !important; }
-        .countdown-header { font-size: 1.8rem !important; }
+        .countdown-header { font-size: 1.5rem !important; }
         [data-testid="stToolbar"] { visibility: hidden; }
     }
 </style>
@@ -77,7 +118,7 @@ st.markdown("""
 
 # --- AUTHENTICATION ---
 def get_auth_url():
-    # UPDATED: Hardcoded URL to avoid Streamlit Cloud NoneType error
+    # UPDATED: Hardcoded URL
     redirect_uri = "https://gemini-running-coach-n4auhgbfxaprhqpqjhorxe.streamlit.app"
     # redirect_uri = "http://localhost:8501" # Uncomment for local
     return f"http://www.strava.com/oauth/authorize?client_id={STRAVA_CLIENT_ID}&response_type=code&redirect_uri={redirect_uri}&approval_prompt=force&scope=activity:read_all"
@@ -170,8 +211,6 @@ def get_gemini_client():
 
 def generate_run_analysis(run, df_history, goal_summary):
     client = get_gemini_client()
-    
-    # Filter for 30 days PRIOR to this specific run
     run_date = run['start_date_local']
     start_window = run_date - timedelta(days=30)
     month_history = df_history[(df_history['start_date_local'] < run_date) & (df_history['start_date_local'] >= start_window)]
@@ -206,20 +245,6 @@ def generate_run_analysis(run, df_history, goal_summary):
     except Exception as e:
         return f"AI Brain Freeze: {e}"
 
-def generate_training_plan(history_summary, goal_date, goal_desc):
-    client = get_gemini_client()
-    prompt = f"""
-    Create a 1-week training plan (Mon-Sun) for a runner.
-    Status: ~{history_summary['dist_30d']/4:.1f} km/week | Avg Pace: {format_pace(history_summary['avg_pace_30d'])} /km
-    Goal: {goal_desc} on {goal_date}
-    Output: Markdown table (Day, Workout, Distance, Pace, Notes).
-    """
-    try:
-        response = client.models.generate_content(model="gemini-flash-latest", contents=prompt)
-        return response.text
-    except Exception as e:
-        return f"Error: {e}"
-
 # --- SIDEBAR ---
 with st.sidebar:
     st.header("🎯 Goals & Settings")
@@ -244,14 +269,14 @@ with st.sidebar:
         
     st.markdown(f"""
     <div class="countdown-box">
-        <div style="font-size:0.8rem;color:#64748b;font-weight:bold;text-transform:uppercase;">{target_name_input}</div>
-        <div class="countdown-header" style="font-size:2.2rem;font-weight:800;color:#0284c7;">{days_left} Days</div>
-        <div style="margin-top:10px;font-size:0.8rem;color:#64748b;font-weight:bold;">REQUIRED PACE</div>
-        <div style="font-size:1.3rem;font-weight:bold;color:#16a34a;">{req_pace_fmt} /km</div>
+        <div style="font-size:0.75rem;color:#64748b;font-weight:bold;text-transform:uppercase;">{target_name_input}</div>
+        <div class="countdown-header" style="font-weight:800;color:#0284c7;">{days_left} Days</div>
+        <div style="margin-top:8px;font-size:0.75rem;color:#64748b;font-weight:bold;">REQUIRED PACE</div>
+        <div style="font-size:1.1rem;font-weight:bold;color:#16a34a;">{req_pace_fmt} /km</div>
     </div>
     """, unsafe_allow_html=True)
     st.divider()
-    if st.button("🔄 Sync Data Now"): st.cache_data.clear(); st.rerun()
+    if st.button("🔄 Sync Data"): st.cache_data.clear(); st.rerun()
     if st.button("🚪 Logout"): st.session_state.clear(); st.rerun()
 
 # --- MAIN APP UI ---
@@ -317,6 +342,36 @@ with tab1:
         else:
             html_trophy += f'<div class="trophy-card" style="opacity:0.6;background-color:#f1f5f9;"><div class="trophy-title">{t["name"]}</div><div class="trophy-time" style="color:#94a3b8;">--:--</div><div class="trophy-date">Not yet recorded</div></div>'
     st.markdown(html_trophy + '</div>', unsafe_allow_html=True)
+    
+    # --- NEW: RECENT RUNS TABLE ---
+    st.divider()
+    st.markdown("### 🏃 Recent Runs (Last 30 Days)")
+    
+    # Filter last 30 days
+    last_30_runs = df[df['start_date_local'] >= (now - pd.Timedelta(days=30))].copy()
+    
+    if not last_30_runs.empty:
+        # Format Data for Table
+        table_data = last_30_runs[['start_date_local', 'name', 'distance_km', 'duration_min', 'pace_min_km', 'avg_hr', 'cadence', 'elevation']].copy()
+        
+        # Cleanup Column formatting
+        table_data['Date'] = table_data['start_date_local'].dt.strftime('%b %d')
+        table_data['Name'] = table_data['name']
+        table_data['Dist (km)'] = table_data['distance_km'].apply(lambda x: f"{x:.2f}")
+        table_data['Time'] = table_data['duration_min'].apply(format_duration)
+        table_data['Pace'] = table_data['pace_min_km'].apply(format_pace)
+        table_data['HR'] = table_data['avg_hr'].apply(lambda x: f"{int(x)}" if pd.notnull(x) else "-")
+        table_data['Cadence'] = table_data['cadence'].apply(lambda x: f"{int(x)}" if pd.notnull(x) else "-")
+        table_data['Elev (m)'] = table_data['elevation'].apply(lambda x: f"{int(x)}")
+        
+        # Display nicely styled table
+        st.dataframe(
+            table_data[['Date', 'Name', 'Dist (km)', 'Time', 'Pace', 'HR', 'Cadence', 'Elev (m)']], 
+            use_container_width=True, 
+            hide_index=True
+        )
+    else:
+        st.info("No runs recorded in the last 30 days.")
 
 # --- TAB 2: RUN DETAILS ---
 with tab2:
@@ -325,7 +380,6 @@ with tab2:
     sel_run = st.selectbox("Select a Run:", df['label'].tolist())
     run = df[df['label'] == sel_run].iloc[0]
     
-    # 1. Metrics
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Distance", f"{run['distance_km']:.2f} km")
     c2.metric("Time", format_duration(run['duration_min']))
@@ -333,8 +387,6 @@ with tab2:
     c4.metric("Elev", f"{int(run['elevation'])} m")
     
     st.divider()
-    
-    # 2. Map & HR
     c_map, c_hr = st.columns([1, 1])
     with c_map:
         st.subheader("🗺️ Route")
@@ -354,8 +406,6 @@ with tab2:
         else: st.warning("No HR Data")
 
     st.divider()
-
-    # 3. NEW: AI COACH ADVICE SECTION
     st.subheader("🤖 Coach's Assessment")
     st.caption("Contextual analysis of this specific run vs. your last 30 days of training.")
     
@@ -365,11 +415,10 @@ with tab2:
             analysis = generate_run_analysis(run, df, goal_summary)
             st.markdown(analysis)
 
-# --- TAB 3: AI COACH (UPDATED) ---
+# --- TAB 3: AI COACH ---
 with tab3:
     st.header("🧠 Gemini Coach")
     
-    # 1. Prepare Yearly Context (Aggregated to save tokens)
     df['Month'] = df['start_date_local'].dt.to_period('M')
     monthly_stats = df.groupby('Month').agg({
         'distance_km': 'sum', 
@@ -383,7 +432,6 @@ with tab3:
     
     goal_summary = f"{target_time_input} for {target_name_input} on {target_date_input}"
     
-    # 2. Quick Action Buttons
     st.subheader("Quick Analysis")
     col_q1, col_q2, col_q3 = st.columns(3)
     
@@ -398,27 +446,21 @@ with tab3:
     if col_q3.button("🛡️ Coach's Advice"):
         prompt_trigger = "What is your top advice for me right now based on my recent consistency and volume?"
 
-    # 3. Chat Interface
     if "messages" not in st.session_state:
         st.session_state.messages = [{"role": "assistant", "content": f"I have analyzed your training data for the whole year. Ask me anything!"}]
 
-    # Handle button clicks automatically
     if prompt_trigger:
         st.session_state.messages.append({"role": "user", "content": prompt_trigger})
         
-    # Display History
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    # Handle new input (either from Text Box OR Button Trigger)
     user_input = st.chat_input("Ask your coach...")
-    
-    # Logic: If button clicked (prompt_trigger) OR text input (user_input)
     final_prompt = prompt_trigger if prompt_trigger else user_input
     
     if final_prompt:
-        if not prompt_trigger: # If it was button, we already appended it above
+        if not prompt_trigger:
             st.session_state.messages.append({"role": "user", "content": final_prompt})
             with st.chat_message("user"): st.markdown(final_prompt)
         
@@ -427,13 +469,9 @@ with tab3:
                 client = get_gemini_client()
                 system_prompt = f"""
                 You are an expert running coach. You have the user's FULL YEAR training log below.
-                
                 USER GOAL: {goal_summary}
-                
                 {yearly_context_str}
-                
                 USER QUESTION: {final_prompt}
-                
                 Provide a data-backed answer. Quote their specific monthly stats if relevant to prove your point.
                 """
                 try:
