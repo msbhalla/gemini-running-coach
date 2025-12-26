@@ -17,22 +17,20 @@ import json
 st.set_page_config(page_title="Gemini Running Coach", page_icon="🏃‍♂️", layout="wide")
 
 # --- LOAD SECRETS ---
-# Try loading from Streamlit secrets (Cloud) first, then local .env
 try:
     STRAVA_CLIENT_ID = st.secrets['STRAVA_CLIENT_ID']
     STRAVA_CLIENT_SECRET = st.secrets['STRAVA_CLIENT_SECRET']
     GEMINI_API_KEY = st.secrets['GEMINI_API_KEY']
 except FileNotFoundError:
-    # If running locally without st.secrets, load from .env
     load_dotenv()
     STRAVA_CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
     STRAVA_CLIENT_SECRET = os.getenv('STRAVA_CLIENT_SECRET')
     GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+
 # --- 💾 SETTINGS MANAGEMENT ---
 SETTINGS_FILE = "user_settings.json"
 
 def load_settings():
-    """Loads user goals from a JSON file, or returns defaults."""
     default_settings = {
         "race_date": "2026-02-22",
         "race_goal_time": "3:45:00",
@@ -47,7 +45,6 @@ def load_settings():
     return default_settings
 
 def save_settings(race_date, goal_time, race_name):
-    """Saves user goals to a JSON file."""
     settings = {
         "race_date": str(race_date),
         "race_goal_time": goal_time,
@@ -56,74 +53,78 @@ def save_settings(race_date, goal_time, race_name):
     with open(SETTINGS_FILE, "w") as f:
         json.dump(settings, f)
 
-# --- 🎨 LIGHT MODE CSS ---
+# --- 📱 MOBILE-FRIENDLY CSS ---
 st.markdown("""
 <style>
-    /* Trophy Cabinet Grid Layout */
+    /* 1. Responsive Trophy Grid */
     .trophy-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 15px;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
         margin-bottom: 25px;
     }
     
-    /* Trophy Card - Light Theme */
+    /* 2. Card Styling */
     .trophy-card {
         background-color: #ffffff;
         border: 1px solid #e2e8f0;
-        border-left: 5px solid #f59e0b; /* Amber */
+        border-left: 5px solid #f59e0b;
         border-radius: 8px;
-        padding: 15px;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-        transition: transform 0.2s;
-    }
-    .trophy-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        padding: 12px;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     }
     .trophy-title { 
-        font-size: 0.8rem; 
+        font-size: 0.75rem; 
         text-transform: uppercase; 
-        color: #64748b; /* Slate-500 */
-        font-weight: 600;
-        letter-spacing: 0.5px; 
+        color: #64748b; 
+        font-weight: 700;
     }
     .trophy-time { 
-        font-size: 1.6rem; 
+        font-size: 1.4rem; 
         font-weight: 700; 
-        color: #0f172a; /* Slate-900 */
+        color: #0f172a; 
         font-family: monospace; 
-        margin: 5px 0;
+        margin: 4px 0;
     }
-    .trophy-date { 
-        font-size: 0.75rem; 
-        color: #94a3b8; 
-    }
+    .trophy-date { font-size: 0.7rem; color: #94a3b8; }
     
-    /* Countdown Box - Light Theme */
+    /* 3. Countdown Box */
     .countdown-box {
         background-color: #f8fafc;
         border: 1px solid #e2e8f0;
         border-radius: 10px;
-        padding: 20px;
+        padding: 15px;
         text-align: center;
         margin-bottom: 20px;
+    }
+
+    /* 4. MOBILE SPECIFIC OVERRIDES */
+    @media (max-width: 768px) {
+        [data-testid="column"] {
+            width: 100% !important;
+            flex: 1 1 auto !important;
+            min-width: 100% !important;
+        }
+        .block-container {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+        .countdown-header { font-size: 1.8rem !important; }
+        [data-testid="stToolbar"] { visibility: hidden; }
     }
 </style>
 """, unsafe_allow_html=True)
 
 # --- AUTHENTICATION ---
-# --- AUTHENTICATION ---
 def get_auth_url():
-    # ⚠️ IMPORTANT: When running locally, uncomment the localhost line and comment out the cloud line.
-    
-    # PRODUCTION URL (Use this for Streamlit Cloud)
+    # UPDATED: Your specific Streamlit URL
     redirect_uri = "https://gemini-running-coach-n4auhgbfxaprhqpqjhorxe.streamlit.app"
     
-    # LOCAL URL (Uncomment this only when testing on your own computer)
+    # LOCAL URL (Uncomment below only for local testing)
     # redirect_uri = "http://localhost:8501"
 
     return f"http://www.strava.com/oauth/authorize?client_id={STRAVA_CLIENT_ID}&response_type=code&redirect_uri={redirect_uri}&approval_prompt=force&scope=activity:read_all"
+
 def exchange_token(code):
     response = requests.post(
         'https://www.strava.com/oauth/token',
@@ -157,7 +158,7 @@ def decode_map(polyline_str):
     coords = polyline.decode(polyline_str)
     return pd.DataFrame(coords, columns=['lat', 'lon'])
 
-# --- 🎨 IMAGE ENGINE ---
+# --- IMAGE ENGINE ---
 def load_font(size, variant="Modern"):
     return ImageFont.load_default()
 
@@ -178,7 +179,6 @@ def generate_aesthetic_image(upload_file, run_data, config):
         width, height = img.size
         draw = ImageDraw.Draw(img)
         
-        # Simplified drawing logic
         if config['style'] == "Minimal Card":
             draw_frosted_glass(img, (50, height-300, width-50, height-50))
             draw.rectangle([50, height-300, width-50, height-50], outline="white", width=2)
@@ -264,7 +264,7 @@ with st.sidebar:
     current_settings = load_settings()
     
     with st.form("goal_form"):
-        st.caption("Update your race target here. This will be saved.")
+        st.caption("Update your race target here.")
         target_date_input = st.date_input("Race Date", date.fromisoformat(current_settings["race_date"]))
         target_time_input = st.text_input("Target Time (HH:MM:SS)", current_settings["race_goal_time"])
         target_name_input = st.text_input("Event Name", current_settings.get("race_name", "Marathon"))
@@ -275,6 +275,7 @@ with st.sidebar:
             st.success("Goal Updated!")
             st.rerun()
 
+    # Logic using saved settings
     target_date = target_date_input
     target_time_str = target_time_input
     
@@ -289,10 +290,11 @@ with st.sidebar:
     except:
         req_pace_fmt = "--:--"
         
+    # Responsive Countdown HTML
     st.markdown(f"""
     <div class="countdown-box">
         <div style="font-size: 0.8rem; color: #64748b; font-weight: bold; text-transform: uppercase;">{target_name_input}</div>
-        <div style="font-size: 2.2rem; font-weight: 800; color: #0284c7;">{days_left} Days</div>
+        <div class="countdown-header" style="font-size: 2.2rem; font-weight: 800; color: #0284c7;">{days_left} Days</div>
         <div style="margin-top: 10px; font-size: 0.8rem; color: #64748b; font-weight: bold;">REQUIRED PACE</div>
         <div style="font-size: 1.3rem; font-weight: bold; color: #16a34a;">{req_pace_fmt} /km</div>
     </div>
@@ -340,7 +342,6 @@ tab1, tab2, tab3, tab4 = st.tabs(["📊 Dashboard", "🏃 Run Details", "🧠 AI
 with tab1:
     st.markdown("### ⚡ Performance Summary")
     
-    # 1. Updated Time Options (Added 3 Months, 6 Months)
     time_options = {
         "1 Week": 7, 
         "15 Days": 15, 
@@ -358,30 +359,25 @@ with tab1:
     
     def get_mean(dframe, col): return dframe[col].mean() if len(dframe) > 0 and col in dframe.columns else 0
 
-    # 2. Updated Columns (5 columns to include Elev & HR)
+    # 5-Column layout (Will Stack on Mobile due to CSS)
     c1, c2, c3, c4, c5 = st.columns(5)
     
-    # Distance
     curr_dist = runs_curr['distance_km'].sum()
     prev_dist = runs_prev['distance_km'].sum()
     c1.metric("Distance", f"{curr_dist:.1f} km", f"{curr_dist - prev_dist:.1f} km")
     
-    # Avg Pace
     curr_pace = get_mean(runs_curr, 'pace_min_km')
     prev_pace = get_mean(runs_prev, 'pace_min_km')
     c2.metric("Avg Pace", f"{format_pace(curr_pace)} /km", f"{curr_pace - prev_pace:.2f} m/k", delta_color="inverse")
     
-    # Elevation (New)
     curr_elev = runs_curr['elevation'].sum()
     prev_elev = runs_prev['elevation'].sum()
     c3.metric("Elevation", f"{int(curr_elev)} m", f"{int(curr_elev - prev_elev)} m")
     
-    # Heart Rate (New)
     curr_hr = get_mean(runs_curr, 'avg_hr')
     prev_hr = get_mean(runs_prev, 'avg_hr')
     c4.metric("Avg HR", f"{int(curr_hr)} bpm", f"{int(curr_hr - prev_hr)} bpm", delta_color="inverse")
     
-    # Runs count
     c5.metric("Runs", len(runs_curr), len(runs_curr) - len(runs_prev))
 
     st.divider()
@@ -417,7 +413,6 @@ with tab1:
                 
             date_str = best['start_date_local'].strftime("%b '%y")
             
-            # NOTE: Indentation removed below to fix rendering
             html_trophy += f"""<div class="trophy-card">
 <div class="trophy-title">{t['name']}</div>
 <div class="trophy-time">{time_str}</div>
@@ -435,7 +430,7 @@ with tab1:
     
     st.divider()
     
-    # 3. Monthly Log
+    # Monthly Log
     st.markdown("### 📅 Monthly Log")
     df['Month_Year'] = df['start_date_local'].dt.to_period('M')
     monthly = df.groupby('Month_Year').agg({'distance_km': 'sum', 'id': 'count', 'pace_min_km': 'mean'}).sort_values(by='Month_Year', ascending=False).reset_index()
