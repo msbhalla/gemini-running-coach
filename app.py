@@ -17,11 +17,17 @@ import json
 st.set_page_config(page_title="Gemini Running Coach", page_icon="🏃‍♂️", layout="wide")
 
 # --- LOAD SECRETS ---
-load_dotenv()
-STRAVA_CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
-STRAVA_CLIENT_SECRET = os.getenv('STRAVA_CLIENT_SECRET')
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-
+# Try loading from Streamlit secrets (Cloud) first, then local .env
+try:
+    STRAVA_CLIENT_ID = st.secrets['STRAVA_CLIENT_ID']
+    STRAVA_CLIENT_SECRET = st.secrets['STRAVA_CLIENT_SECRET']
+    GEMINI_API_KEY = st.secrets['GEMINI_API_KEY']
+except FileNotFoundError:
+    # If running locally without st.secrets, load from .env
+    load_dotenv()
+    STRAVA_CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
+    STRAVA_CLIENT_SECRET = os.getenv('STRAVA_CLIENT_SECRET')
+    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 # --- 💾 SETTINGS MANAGEMENT ---
 SETTINGS_FILE = "user_settings.json"
 
