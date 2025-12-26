@@ -1,0 +1,9 @@
+streamlit
+requests
+pandas
+plotly
+polyline
+pydeck
+Pillow
+google-genai
+python-dotenv
