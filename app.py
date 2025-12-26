@@ -53,64 +53,64 @@ def save_settings(race_date, goal_time, race_name):
     with open(SETTINGS_FILE, "w") as f:
         json.dump(settings, f)
 
-# --- 📱 CSS STYLING (UPDATED FONT SIZES) ---
+# --- 📱 CSS STYLING (UPDATED FOR COMPACTNESS) ---
 st.markdown("""
 <style>
-    /* Metric Value Font Reduction */
+    /* 1. COMPACT METRICS (Performance Summary) */
     [data-testid="stMetricValue"] {
-        font-size: 1.8rem !important; /* Reduced from default ~3rem */
+        font-size: 1.6rem !important; /* Reduced from 3rem to fit small screens */
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 0.8rem !important;
     }
     
-    /* Trophy Grid */
+    /* 2. COMPACT TROPHY GRID */
     .trophy-grid { 
         display: grid; 
-        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); /* Slightly narrower col min-width */
-        gap: 10px; 
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* Narrower cards */
+        gap: 8px; 
         margin-bottom: 25px; 
     }
     
-    /* Trophy Card */
+    /* 3. TROPHY CARD STYLING */
     .trophy-card { 
         background-color: #ffffff; 
         border: 1px solid #e2e8f0; 
-        border-left: 5px solid #f59e0b; 
-        border-radius: 8px; 
-        padding: 10px; 
+        border-left: 4px solid #f59e0b; 
+        border-radius: 6px; 
+        padding: 8px; 
         box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); 
     }
     .trophy-title { 
-        font-size: 0.7rem; 
+        font-size: 0.65rem; 
         text-transform: uppercase; 
         color: #64748b; 
         font-weight: 700; 
     }
     .trophy-time { 
-        font-size: 1.1rem; /* Reduced from 1.4rem */
+        font-size: 1.1rem; /* Smaller time font */
         font-weight: 700; 
         color: #0f172a; 
         font-family: monospace; 
         margin: 2px 0; 
     }
-    .trophy-date { font-size: 0.65rem; color: #94a3b8; }
+    .trophy-date { font-size: 0.6rem; color: #94a3b8; }
     
-    /* Countdown Box */
+    /* 4. COUNTDOWN BOX */
     .countdown-box { 
         background-color: #f8fafc; 
         border: 1px solid #e2e8f0; 
         border-radius: 10px; 
-        padding: 12px; 
+        padding: 10px; 
         text-align: center; 
         margin-bottom: 20px; 
     }
-    .countdown-header { font-size: 1.8rem !important; } /* Reduced from 2.2rem */
+    .countdown-header { font-size: 1.6rem !important; }
     
-    /* Coach Chat Buttons */
-    .stButton button { width: 100%; border-radius: 8px; height: auto; white-space: normal; padding: 0.5rem; }
-    
+    /* Mobile Fixes */
     @media (max-width: 768px) {
         [data-testid="column"] { width: 100% !important; flex: 1 1 auto !important; min-width: 100% !important; }
-        .block-container { padding-left: 1rem !important; padding-right: 1rem !important; }
-        .countdown-header { font-size: 1.5rem !important; }
+        .block-container { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
         [data-testid="stToolbar"] { visibility: hidden; }
     }
 </style>
@@ -118,9 +118,8 @@ st.markdown("""
 
 # --- AUTHENTICATION ---
 def get_auth_url():
-    # UPDATED: Hardcoded URL
     redirect_uri = "https://gemini-running-coach-n4auhgbfxaprhqpqjhorxe.streamlit.app"
-    # redirect_uri = "http://localhost:8501" # Uncomment for local
+    # redirect_uri = "http://localhost:8501" # Uncomment for local testing
     return f"http://www.strava.com/oauth/authorize?client_id={STRAVA_CLIENT_ID}&response_type=code&redirect_uri={redirect_uri}&approval_prompt=force&scope=activity:read_all"
 
 def exchange_token(code):
@@ -220,36 +219,20 @@ def generate_run_analysis(run, df_history, goal_summary):
     
     prompt = f"""
     Act as a tough but fair running coach.
-    
-    1. ANALYZE THIS RUN:
-    - Date: {run_date.date()}
-    - Dist: {run['distance_km']:.2f}km
-    - Pace: {format_pace(run['pace_min_km'])}/km
-    - HR: {run['avg_hr'] if pd.notnull(run['avg_hr']) else 'N/A'}
-    
-    2. CONTEXT (Previous 30 Days):
-    - Avg Pace: {format_pace(avg_pace_month)}/km
-    - Total Vol: {total_dist_month:.1f} km
-    
+    1. ANALYZE THIS RUN: {run_date.date()}, {run['distance_km']:.2f}km, {format_pace(run['pace_min_km'])}/km, HR: {run['avg_hr']}
+    2. CONTEXT (Last 30 Days): Avg Pace: {format_pace(avg_pace_month)}/km, Vol: {total_dist_month:.1f} km
     3. GOAL: {goal_summary}
-    
-    TASK:
-    - Compare this run to the 30-day baseline. Is it an improvement?
-    - Give specific feedback on the heart rate vs pace (if HR exists).
-    - Roast the user slightly if they are slacking off or running inconsistent paces.
-    - Provide 1 specific actionable suggestion for the next run.
+    TASK: Compare to baseline. Feedback on HR/Pace. Roast if needed. 1 Actionable tip.
     """
     try:
         response = client.models.generate_content(model="gemini-flash-latest", contents=prompt)
         return response.text
-    except Exception as e:
-        return f"AI Brain Freeze: {e}"
+    except Exception as e: return f"AI Brain Freeze: {e}"
 
 # --- SIDEBAR ---
 with st.sidebar:
     st.header("🎯 Goals & Settings")
     current_settings = load_settings()
-    
     with st.form("goal_form"):
         st.caption("Update your race target here.")
         target_date_input = st.date_input("Race Date", date.fromisoformat(current_settings["race_date"]))
@@ -269,10 +252,9 @@ with st.sidebar:
         
     st.markdown(f"""
     <div class="countdown-box">
-        <div style="font-size:0.75rem;color:#64748b;font-weight:bold;text-transform:uppercase;">{target_name_input}</div>
+        <div style="font-size:0.7rem;color:#64748b;font-weight:bold;text-transform:uppercase;">{target_name_input}</div>
         <div class="countdown-header" style="font-weight:800;color:#0284c7;">{days_left} Days</div>
-        <div style="margin-top:8px;font-size:0.75rem;color:#64748b;font-weight:bold;">REQUIRED PACE</div>
-        <div style="font-size:1.1rem;font-weight:bold;color:#16a34a;">{req_pace_fmt} /km</div>
+        <div style="margin-top:5px;font-size:0.7rem;color:#64748b;font-weight:bold;">REQ PACE: {req_pace_fmt}/km</div>
     </div>
     """, unsafe_allow_html=True)
     st.divider()
@@ -318,13 +300,13 @@ with tab1:
     c1.metric("Distance", f"{curr_dist:.1f} km", f"{curr_dist - r_prev['distance_km'].sum():.1f} km")
     
     curr_pace = get_mean(r_curr, 'pace_min_km')
-    c2.metric("Avg Pace", f"{format_pace(curr_pace)} /km", f"{curr_pace - get_mean(r_prev, 'pace_min_km'):.2f} m/k", delta_color="inverse")
+    c2.metric("Pace", f"{format_pace(curr_pace)}", f"{curr_pace - get_mean(r_prev, 'pace_min_km'):.2f} m/k", delta_color="inverse")
     
     curr_elev = r_curr['elevation'].sum()
-    c3.metric("Elevation", f"{int(curr_elev)} m", f"{int(curr_elev - r_prev['elevation'].sum())} m")
+    c3.metric("Elev", f"{int(curr_elev)} m", f"{int(curr_elev - r_prev['elevation'].sum())} m")
     
     curr_hr = get_mean(r_curr, 'avg_hr')
-    c4.metric("Avg HR", f"{int(curr_hr)} bpm", f"{int(curr_hr - get_mean(r_prev, 'avg_hr'))} bpm", delta_color="inverse")
+    c4.metric("HR", f"{int(curr_hr)} bpm", f"{int(curr_hr - get_mean(r_prev, 'avg_hr'))}", delta_color="inverse")
     
     c5.metric("Runs", len(r_curr), len(r_curr) - len(r_prev))
 
@@ -338,23 +320,19 @@ with tab1:
             best = q_runs.sort_values('pace_min_km').iloc[0]
             tm = best['pace_min_km'] * t['dist']
             time_str = f"{int(tm//60)}:{int(tm%60):02d}:{int((tm*60)%60):02d}" if tm > 60 else f"{int(tm)}:{int((tm-int(tm))*60):02d}"
-            html_trophy += f'<div class="trophy-card"><div class="trophy-title">{t["name"]}</div><div class="trophy-time">{time_str}</div><div class="trophy-date">{best["start_date_local"].strftime("%b %y")} • {format_pace(best["pace_min_km"])}/km</div></div>'
+            html_trophy += f'<div class="trophy-card"><div class="trophy-title">{t["name"]}</div><div class="trophy-time">{time_str}</div><div class="trophy-date">{best["start_date_local"].strftime("%b %y")}</div></div>'
         else:
-            html_trophy += f'<div class="trophy-card" style="opacity:0.6;background-color:#f1f5f9;"><div class="trophy-title">{t["name"]}</div><div class="trophy-time" style="color:#94a3b8;">--:--</div><div class="trophy-date">Not yet recorded</div></div>'
+            html_trophy += f'<div class="trophy-card" style="opacity:0.6;background-color:#f1f5f9;"><div class="trophy-title">{t["name"]}</div><div class="trophy-time" style="color:#94a3b8;">--:--</div></div>'
     st.markdown(html_trophy + '</div>', unsafe_allow_html=True)
     
     # --- NEW: RECENT RUNS TABLE ---
     st.divider()
     st.markdown("### 🏃 Recent Runs (Last 30 Days)")
     
-    # Filter last 30 days
     last_30_runs = df[df['start_date_local'] >= (now - pd.Timedelta(days=30))].copy()
     
     if not last_30_runs.empty:
-        # Format Data for Table
         table_data = last_30_runs[['start_date_local', 'name', 'distance_km', 'duration_min', 'pace_min_km', 'avg_hr', 'cadence', 'elevation']].copy()
-        
-        # Cleanup Column formatting
         table_data['Date'] = table_data['start_date_local'].dt.strftime('%b %d')
         table_data['Name'] = table_data['name']
         table_data['Dist (km)'] = table_data['distance_km'].apply(lambda x: f"{x:.2f}")
@@ -364,7 +342,6 @@ with tab1:
         table_data['Cadence'] = table_data['cadence'].apply(lambda x: f"{int(x)}" if pd.notnull(x) else "-")
         table_data['Elev (m)'] = table_data['elevation'].apply(lambda x: f"{int(x)}")
         
-        # Display nicely styled table
         st.dataframe(
             table_data[['Date', 'Name', 'Dist (km)', 'Time', 'Pace', 'HR', 'Cadence', 'Elev (m)']], 
             use_container_width=True, 
@@ -379,7 +356,6 @@ with tab2:
     df['label'] = df.apply(lambda x: f"{x['start_date_local'].strftime('%b %d')} - {x['name']} ({x['distance_km']:.2f} km)", axis=1)
     sel_run = st.selectbox("Select a Run:", df['label'].tolist())
     run = df[df['label'] == sel_run].iloc[0]
-    
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Distance", f"{run['distance_km']:.2f} km")
     c2.metric("Time", format_duration(run['duration_min']))
@@ -396,7 +372,6 @@ with tab2:
                 st.pydeck_chart(pdk.Deck(layers=[pdk.Layer(type="PathLayer", data=[{"path": md[['lon', 'lat']].values.tolist()}], get_path="path", get_color=[234, 88, 12], width_min_pixels=3)], initial_view_state=pdk.ViewState(latitude=md['lat'].mean(), longitude=md['lon'].mean(), zoom=13), map_style="road"))
             else: st.warning("No Map Data")
         else: st.info("No GPS Data")
-        
     with c_hr:
         st.subheader("❤️ Intensity")
         if pd.notnull(run['avg_hr']):
@@ -407,10 +382,8 @@ with tab2:
 
     st.divider()
     st.subheader("🤖 Coach's Assessment")
-    st.caption("Contextual analysis of this specific run vs. your last 30 days of training.")
-    
     if st.button("🧠 Analyze This Run", type="primary"):
-        with st.spinner("Analyzing pace trends, heart rate drift, and recent volume..."):
+        with st.spinner("Analyzing..."):
             goal_summary = f"{target_name_input} on {target_date_input} (Target: {target_time_input})"
             analysis = generate_run_analysis(run, df, goal_summary)
             st.markdown(analysis)
@@ -418,69 +391,37 @@ with tab2:
 # --- TAB 3: AI COACH ---
 with tab3:
     st.header("🧠 Gemini Coach")
-    
     df['Month'] = df['start_date_local'].dt.to_period('M')
-    monthly_stats = df.groupby('Month').agg({
-        'distance_km': 'sum', 
-        'pace_min_km': 'mean',
-        'id': 'count'
-    }).sort_index(ascending=True)
-    
-    yearly_context_str = "YEARLY TRAINING LOG:\n"
-    for idx, row in monthly_stats.iterrows():
-        yearly_context_str += f"- {idx}: {row['distance_km']:.1f}km over {row['id']} runs @ avg pace {format_pace(row['pace_min_km'])}/km\n"
-    
+    monthly_stats = df.groupby('Month').agg({'distance_km': 'sum', 'pace_min_km': 'mean', 'id': 'count'}).sort_index(ascending=True)
+    yearly_context_str = "YEARLY LOG:\n" + "\n".join([f"- {idx}: {row['distance_km']:.1f}km, {row['id']} runs, {format_pace(row['pace_min_km'])}/km" for idx, row in monthly_stats.iterrows()])
     goal_summary = f"{target_time_input} for {target_name_input} on {target_date_input}"
     
     st.subheader("Quick Analysis")
     col_q1, col_q2, col_q3 = st.columns(3)
-    
     prompt_trigger = None
-    
-    if col_q1.button("📈 Training Trends"):
-        prompt_trigger = "How is my training trending compared to previous months? Am I improving or regressing?"
-    
-    if col_q2.button("🔮 Marathon Outlook"):
-        prompt_trigger = f"Based on my full year of data, what is the realistic outlook for my {target_name_input} on {target_date_input}? Can I hit {target_time_input}?"
-        
-    if col_q3.button("🛡️ Coach's Advice"):
-        prompt_trigger = "What is your top advice for me right now based on my recent consistency and volume?"
+    if col_q1.button("📈 Trends"): prompt_trigger = "How is my training trending compared to previous months?"
+    if col_q2.button("🔮 Outlook"): prompt_trigger = f"Outlook for {target_name_input} on {target_date_input}?"
+    if col_q3.button("🛡️ Advice"): prompt_trigger = "Advice based on recent consistency?"
 
-    if "messages" not in st.session_state:
-        st.session_state.messages = [{"role": "assistant", "content": f"I have analyzed your training data for the whole year. Ask me anything!"}]
-
-    if prompt_trigger:
-        st.session_state.messages.append({"role": "user", "content": prompt_trigger})
+    if "messages" not in st.session_state: st.session_state.messages = [{"role": "assistant", "content": f"I have analyzed your year. Ask me anything!"}]
+    if prompt_trigger: st.session_state.messages.append({"role": "user", "content": prompt_trigger})
         
     for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+        with st.chat_message(message["role"]): st.markdown(message["content"])
 
     user_input = st.chat_input("Ask your coach...")
     final_prompt = prompt_trigger if prompt_trigger else user_input
     
     if final_prompt:
-        if not prompt_trigger:
-            st.session_state.messages.append({"role": "user", "content": final_prompt})
-            with st.chat_message("user"): st.markdown(final_prompt)
-        
+        if not prompt_trigger: st.session_state.messages.append({"role": "user", "content": final_prompt}); st.chat_message("user").markdown(final_prompt)
         with st.chat_message("assistant"):
-            with st.spinner("Analyzing full year history..."):
+            with st.spinner("Thinking..."):
                 client = get_gemini_client()
-                system_prompt = f"""
-                You are an expert running coach. You have the user's FULL YEAR training log below.
-                USER GOAL: {goal_summary}
-                {yearly_context_str}
-                USER QUESTION: {final_prompt}
-                Provide a data-backed answer. Quote their specific monthly stats if relevant to prove your point.
-                """
                 try:
-                    response = client.models.generate_content(model="gemini-flash-latest", contents=system_prompt)
+                    response = client.models.generate_content(model="gemini-flash-latest", contents=f"Coach. GOAL: {goal_summary}\nDATA: {yearly_context_str}\nQ: {final_prompt}")
                     reply = response.text
                 except Exception as e: reply = f"Error: {e}"
-                
-                st.markdown(reply)
-                st.session_state.messages.append({"role": "assistant", "content": reply})
+                st.markdown(reply); st.session_state.messages.append({"role": "assistant", "content": reply})
 
 # --- TAB 4: TRENDS ---
 with tab4:
