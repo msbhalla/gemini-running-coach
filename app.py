@@ -113,14 +113,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- AUTHENTICATION ---
+# --- AUTHENTICATION ---
 def get_auth_url():
-    # Detect if running locally or in cloud to pick the right return address
-    if "streamlit.app" in st.get_option("server.address") or os.getenv("IS_CLOUD"):
-        # PRODUCTION URL
-        redirect_uri = "https://gemini-running-coach-n4auhgbfxaprhqpqjhorxe.streamlit.app" 
-    else:
-        # LOCAL URL (Keep this for testing on your machine)
-        redirect_uri = "http://localhost:8501"
+    # ⚠️ IMPORTANT: When running locally, uncomment the localhost line and comment out the cloud line.
+    
+    # PRODUCTION URL (Use this for Streamlit Cloud)
+    redirect_uri = "https://gemini-running-coach-n4auhgbfxaprhqpqjhorxe.streamlit.app"
+    
+    # LOCAL URL (Uncomment this only when testing on your own computer)
+    # redirect_uri = "http://localhost:8501"
 
     return f"http://www.strava.com/oauth/authorize?client_id={STRAVA_CLIENT_ID}&response_type=code&redirect_uri={redirect_uri}&approval_prompt=force&scope=activity:read_all"
 def exchange_token(code):
